@@ -1,0 +1,15 @@
+# ide cfg
+.vscode
+.idea
+
+# data & result dir
+dataset/
+output/
+
+# cache
+__pycache__/
+
+# nms build
+.so
+.c
+.cpp
