@@ -8,7 +8,6 @@ from collections import OrderedDict as dict
 import numpy as np
 import setproctitle
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 
 from config import cfg
 from tfflat.data_provider import DataFromList, MultiProcessMapDataZMQ, BatchData, MapData
@@ -38,7 +37,6 @@ class ModelDesc(object):
     def set_loss(self, var):
         if not isinstance(var, tf.Tensor):
             raise ValueError("Loss must be an single tensor.")
-        # assert var.get_shape() == [], 'Loss tensor must be a scalar shape but got {} shape'.format(var.get_shape())
         self._loss = var
 
     def get_loss(self, include_wd=False):
@@ -121,7 +119,8 @@ class Base(object):
         self.logger = colorlogger(cfg.log_dir, log_name=log_name)
 
         # initialize tensorflow
-        tfconfig = tf.ConfigProto(allow_soft_placement=True, log_device_placement=False)
+        tfconfig = tf.ConfigProto(allow_soft_placement=True, 
+                                  log_device_placement=False)
         tfconfig.gpu_options.allow_growth = True
         self.sess = tf.Session(config=tfconfig)
 
@@ -207,8 +206,8 @@ class Trainer(Base):
 
         data_load_thread = DataFromList(train_data)
         if cfg.multi_thread_enable:
-            data_load_thread = MultiProcessMapDataZMQ(data_load_thread, cfg.num_thread, generate_batch,
-                                                      strict=True)
+            data_load_thread = MultiProcessMapDataZMQ(
+                data_load_thread, cfg.num_thread, generate_batch, strict=True)
         else:
             data_load_thread = MapData(data_load_thread, generate_batch)
         data_load_thread = BatchData(data_load_thread, cfg.batch_size)
@@ -221,33 +220,18 @@ class Trainer(Base):
     def _make_graph(self):
         self.logger.info("Generating training graph on {} GPUs ...".format(cfg.num_gpus))
 
-        weights_initializer = slim.xavier_initializer()
-        biases_initializer = tf.constant_initializer(0.)
-        biases_regularizer = tf.no_regularizer
-        weights_regularizer = tf.contrib.layers.l2_regularizer(cfg.weight_decay)
-
         tower_grads = []
         with tf.variable_scope(tf.get_variable_scope()):
             for i in range(cfg.num_gpus):
                 with tf.device('/gpu:%d' % i):
                     with tf.name_scope('tower_%d' % i) as name_scope:
-                        # Force all Variables to reside on the CPU.
-                        with slim.arg_scope([slim.model_variable, slim.variable], device='/device:CPU:0'):
-                            with slim.arg_scope(
-                                    [slim.conv2d, slim.conv2d_in_plane, \
-                                     slim.conv2d_transpose, slim.separable_conv2d,
-                                     slim.fully_connected],
-                                    weights_regularizer=weights_regularizer,
-                                    biases_regularizer=biases_regularizer,
-                                    weights_initializer=weights_initializer,
-                                    biases_initializer=biases_initializer):
-                                # loss over single GPU
-                                self.net.make_network(is_train=True)
-                                if i == cfg.num_gpus - 1:
-                                    loss = self.net.get_loss(include_wd=True)
-                                else:
-                                    loss = self.net.get_loss()
-                                self._input_list.append(self.net.get_inputs())
+                        # loss over single GPU
+                        self.net.make_network(is_train=True)
+                        if i == cfg.num_gpus - 1:
+                            loss = self.net.get_loss(include_wd=True)
+                        else:
+                            loss = self.net.get_loss()
+                        self._input_list.append(self.net.get_inputs())
 
                         tf.get_variable_scope().reuse_variables()
 
@@ -293,6 +277,7 @@ class Trainer(Base):
             self.tot_timer.tic()
 
             self.cur_epoch = itr // self.itr_per_epoch
+            itr_epoch = itr % self.itr_per_epoch
             setproctitle.setproctitle('train epoch:' + str(self.cur_epoch))
 
             # apply current learning policy
@@ -309,7 +294,8 @@ class Trainer(Base):
             # train one step
             self.gpu_timer.tic()
             _, self.lr_eval, *summary_res = self.sess.run(
-                [self.graph_ops[0], self.lr, *self.summary_dict.values()], feed_dict=feed_dict)
+                [self.graph_ops[0], self.lr, *self.summary_dict.values()], 
+                feed_dict=feed_dict)
             self.gpu_timer.toc()
 
             itr_summary = dict()
@@ -317,11 +303,15 @@ class Trainer(Base):
                 itr_summary[k] = summary_res[i]
 
             screen = [
-                'Epoch %d itr %d/%d:' % (self.cur_epoch, itr, self.itr_per_epoch),
+                'Epoch %d itr %d/%d:' % (self.cur_epoch, itr_epoch),
                 'lr: %g' % (self.lr_eval),
                 'speed: %.2f(%.2fs r%.2f)s/itr' % (
-                    self.tot_timer.average_time, self.gpu_timer.average_time, self.read_timer.average_time),
-                '%.2fh/epoch' % (self.tot_timer.average_time / 3600. * self.itr_per_epoch),
+                    self.tot_timer.average_time, 
+                    self.gpu_timer.average_time, 
+                    self.read_timer.average_time
+                ),
+                '%.2fh/epoch' % (
+                    self.tot_timer.average_time / 3600. * self.itr_per_epoch),
                 ' '.join(map(lambda x: '%s: %.4f' % (x[0], x[1]), itr_summary.items())),
             ]
 
@@ -363,8 +353,8 @@ class Tester(Base):
                     else:
                         feed_dict[inp] = blobs[i].reshape(*inp_shape)
         else:
-            assert isinstance(batch_data, list) or isinstance(batch_data, tuple), "Input data should be list-type."
-            assert len(batch_data) == len(self._input_list[0]), "Input data is incomplete."
+            assert isinstance(batch_data, list) or isinstance(batch_data, tuple)
+            assert len(batch_data) == len(self._input_list[0])
 
             batch_size = cfg.batch_size
             if self._input_list[0][0].get_shape().as_list()[0] is None:
@@ -374,13 +364,11 @@ class Tester(Base):
                     total_batches = batch_size * cfg.num_gpus
                     left_batches = total_batches - len(batch_data[i])
                     if left_batches > 0:
-                        batch_data[i] = np.append(batch_data[i], np.zeros((left_batches, *batch_data[i].shape[1:])),
-                                                  axis=0)
-                        self.logger.warning("Fill some blanks to fit batch_size which wastes %d%% computation" % (
-                                left_batches * 100. / total_batches))
+                        batch_data[i] = np.append(
+                            batch_data[i], 
+                            np.zeros((left_batches, *batch_data[i].shape[1:])), axis=0)
             else:
-                assert cfg.batch_size * cfg.num_gpus == len(batch_data[0]), \
-                    "Input batch doesn't fit placeholder batch."
+                assert cfg.batch_size * cfg.num_gpus == len(batch_data[0])
 
             for j, inputs in enumerate(self._input_list):
                 for i, inp in enumerate(inputs):
@@ -397,24 +385,22 @@ class Tester(Base):
             for i in range(cfg.num_gpus):
                 with tf.device('/gpu:%d' % i):
                     with tf.name_scope('tower_%d' % i) as name_scope:
-                        with slim.arg_scope([slim.model_variable, slim.variable], device='/device:CPU:0'):
-                            self.net.make_network(is_train=False)
-                            self._input_list.append(self.net.get_inputs())
-                            self._output_list.append(self.net.get_outputs())
+                        self.net.make_network(is_train=False)
+                        self._input_list.append(self.net.get_inputs())
+                        self._output_list.append(self.net.get_outputs())
 
                         tf.get_variable_scope().reuse_variables()
 
         self._outputs = aggregate_batch(self._output_list)
 
-        # run_meta = tf.RunMetadata()
-        # opts = tf.profiler.ProfileOptionBuilder.float_operation()
-        # flops = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
-        #
-        # opts = tf.profiler.ProfileOptionBuilder.trainable_variables_parameter()
-        # params = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
+        run_meta = tf.RunMetadata()
+        opts = tf.profiler.ProfileOptionBuilder.float_operation()
+        flops = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
+        
+        opts = tf.profiler.ProfileOptionBuilder.trainable_variables_parameter()
+        params = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
 
-        # print("{:,} --- {:,}".format(flops.total_float_ops, params.total_parameters))
-        # from IPython import embed; embed()
+        print("{:,} --- {:,}".format(flops.total_float_ops, params.total_parameters))
 
         return self._outputs
 

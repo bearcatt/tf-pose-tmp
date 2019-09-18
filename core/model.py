@@ -1,23 +1,22 @@
 import tensorflow as tf
-import tensorflow.contrib.slim as slim
 
 from config import cfg
-from hrnet.model import HRNet
+from hrnet import HRNet
 from .engine import ModelDesc
 
 
 class Model(ModelDesc):
 
-    def head_net(self, blocks, trainable=True):
+    def head_net(self, features):
 
-        msra_initializer = tf.contrib.layers.variance_scaling_initializer()
+        out = tf.compat.v1.layers.conv2d(
+            inputs=features[0], filters=cfg.num_kps, kernel_size=[1, 1], 
+            padding='SAME', data_format='channels_last', use_bias=True,
+            kernel_initializer=tf.compat.v1.variance_scaling_initializer(),
+            bias_initializer=tf.zeros_initializer(),
+            kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5),
+            bias_regularizer=None, trainable=True, name='out')
 
-        with slim.arg_scope([slim.conv2d],  # NOTE(NHWC)
-                            weights_regularizer=slim.l2_regularizer(1e-4)):
-            out = slim.conv2d(blocks[0], cfg.num_kps, [1, 1],
-                              trainable=trainable, weights_initializer=msra_initializer,
-                              padding='SAME', normalizer_fn=None, activation_fn=None,
-                              scope='out')
         return out
 
     def render_gaussian_heatmap(self, coord, output_shape, sigma):
@@ -28,8 +27,10 @@ class Model(ModelDesc):
         xx = tf.reshape(tf.to_float(xx), (1, *output_shape, 1))
         yy = tf.reshape(tf.to_float(yy), (1, *output_shape, 1))
 
-        x = tf.floor(tf.reshape(coord[:, :, 0], [-1, 1, 1, cfg.num_kps]) / cfg.input_shape[1] * output_shape[1] + 0.5)
-        y = tf.floor(tf.reshape(coord[:, :, 1], [-1, 1, 1, cfg.num_kps]) / cfg.input_shape[0] * output_shape[0] + 0.5)
+        x = tf.floor(tf.reshape(coord[:, :, 0], [-1, 1, 1, cfg.num_kps]) \
+                / cfg.input_shape[1] * output_shape[1] + 0.5)
+        y = tf.floor(tf.reshape(coord[:, :, 1], [-1, 1, 1, cfg.num_kps]) \
+                / cfg.input_shape[0] * output_shape[0] + 0.5)
 
         heatmap = tf.exp(-(((xx - x) / tf.to_float(sigma)) ** 2) / tf.to_float(2) - (
                 ((yy - y) / tf.to_float(sigma)) ** 2) / tf.to_float(2))
@@ -47,12 +48,12 @@ class Model(ModelDesc):
             image = tf.placeholder(tf.float32, shape=[None, *cfg.input_shape, 3])
             self.set_inputs(image)
 
-        with tf.variable_scope('HRNET'):
-            hrnet_fms = HRNet(cfg.hrnet_config, image, is_train)
-            heatmap_outs = self.head_net(hrnet_fms)
+        hrnet_fms = HRNet(cfg.hrnet_size, image, is_train)
+        heatmap_outs = self.head_net(hrnet_fms)
 
         if is_train:
-            gt_heatmap = tf.stop_gradient(self.render_gaussian_heatmap(target_coord, cfg.output_shape, cfg.sigma))
+            gt_heatmap = tf.stop_gradient(
+                self.render_gaussian_heatmap(target_coord, cfg.output_shape, cfg.sigma))
             valid_mask = tf.reshape(valid, [cfg.batch_size, 1, 1, cfg.num_kps])
             loss = tf.reduce_mean(tf.square(heatmap_outs - gt_heatmap) * valid_mask)
             self.add_tower_summary('loss', loss)

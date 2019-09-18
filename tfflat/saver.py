@@ -44,7 +44,7 @@ def load_model(sess, model_path):
 
     # vis_var_keep_dic = []
     variables_to_restore = {}
-    changed_variables = {}
+    unrestored_vars = []
     for v in variables:
 
         v_name = v.name.split(':')[0]
@@ -54,12 +54,13 @@ def load_model(sess, model_path):
             variables_to_restore[v_name] = v
             # vis_var_keep_dic.append(v.name.split(':')[0])
         else:
-            print('Unrestored Variables: %s' % v.name)
+            unrestored_vars.append(v.name)
     # print('Extra Variables in ckpt', set(var_keep_dic) - set(vis_var_keep_dic))
 
     if len(variables_to_restore) > 0:
         restorer = tf.train.Saver(variables_to_restore)
         restorer.restore(sess, model_path)
-
+        for var in unrestored_vars:
+            print('Unrestored Variables: %s' % var)
     else:
         print('No variables in {} fits the network'.format(model_path))

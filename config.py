@@ -17,9 +17,8 @@ class Config:
     output_dir = osp.join(root_dir, 'output')
 
     ## model setting
-    backbone = 'w32' # 'w32', 'w48'
-    init_model = osp.join(pretrain_model_dir, 'hrnet_' + backbone + '.ckpt')
-    hrnet_config = osp.join(root_dir, 'hrnet', 'configs', backbone + '.cfg')
+    hrnet_size = 32 # 'w32', 'w48'
+    init_model = osp.join(pretrain_model_dir, 'hrnet_w' + hrnet_size + '.ckpt')
 
     ## input, output
     input_shape = (256, 192)  # (256,192), (384,288)
@@ -66,7 +65,7 @@ class Config:
     num_gpus = None
     continue_train = None
 
-    model_str = '{}_{}x{}'.format(backbone, input_shape[0], input_shape[1])
+    model_str = 'w{}_{}x{}'.format(hrnet_size, input_shape[0], input_shape[1])
     model_dump_dir = osp.join(output_dir, model_str, 'model_dump', dataset)
     log_dir = osp.join(output_dir, model_str, 'log', dataset)
     result_dir = osp.join(output_dir, model_str, 'result', dataset)
