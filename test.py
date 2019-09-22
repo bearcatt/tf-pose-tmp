@@ -1,15 +1,16 @@
 import argparse
 import json
 import math
-import time
+import os.path as osp
 
 import numpy as np
 from tqdm import tqdm
 
+import coco
 from config import cfg
-from core.engine import Tester
-from core.gen_batch import generate_batch
-from core.model import Model
+from engine import Tester
+from gen_batch import generate_batch
+from model import Model
 from nms.nms import oks_nms
 from tfflat.mp_utils import MultiProc
 from tfflat.utils import mem_info
@@ -17,14 +18,10 @@ from tfflat.utils import mem_info
 
 def test_net(tester, dets, det_range, gpu_id):
     dump_results = []
-
-    start_time = time.time()
-
     img_start = det_range[0]
-    img_id = 0
-    img_id2 = 0
     pbar = tqdm(total=det_range[1] - img_start - 1, position=gpu_id)
     pbar.set_description("GPU %s" % str(gpu_id))
+
     while img_start < det_range[1]:
         img_end = img_start + 1
         im_info = dets[img_start]
@@ -40,10 +37,10 @@ def test_net(tester, dets, det_range, gpu_id):
         kps_result = np.zeros((len(cropped_data), cfg.num_kps, 3))
         area_save = np.zeros(len(cropped_data))
 
-        # cluster human detection results with test_batch_size
-        for batch_id in range(0, len(cropped_data), cfg.test_batch_size):
+        # cluster human detection results with batch_size
+        for batch_id in range(0, len(cropped_data), cfg.batch_size):
             start_id = batch_id
-            end_id = min(len(cropped_data), batch_id + cfg.test_batch_size)
+            end_id = min(len(cropped_data), batch_id + cfg.batch_size)
 
             imgs = []
             crop_infos = []
@@ -62,8 +59,10 @@ def test_net(tester, dets, det_range, gpu_id):
 
             flip_heatmap = flip_heatmap[:, :, ::-1, :]
             for (q, w) in cfg.kps_symmetry:
-                flip_heatmap_w, flip_heatmap_q = flip_heatmap[:, :, :, w].copy(), flip_heatmap[:, :, :, q].copy()
-                flip_heatmap[:, :, :, q], flip_heatmap[:, :, :, w] = flip_heatmap_w, flip_heatmap_q
+                flip_heatmap_w = flip_heatmap[:, :, :, w].copy()
+                flip_heatmap_q = flip_heatmap[:, :, :, q].copy()
+                flip_heatmap[:, :, :, q] = flip_heatmap_w
+                flip_heatmap[:, :, :, w] = flip_heatmap_q
             flip_heatmap[:, :, 1:, :] = flip_heatmap.copy()[:, :, 0:-1, :]
             heatmap += flip_heatmap
             heatmap /= 2
@@ -79,63 +78,56 @@ def test_net(tester, dets, det_range, gpu_id):
                     px = int(math.floor(x + 0.5))
                     py = int(math.floor(y + 0.5))
                     if 1 < px < cfg.output_shape[1] - 1 and 1 < py < cfg.output_shape[0] - 1:
-                        diff = np.array([hm_j[py][px + 1] - hm_j[py][px - 1],
-                                         hm_j[py + 1][px] - hm_j[py - 1][px]])
+                        diff = np.array(
+                            [hm_j[py][px + 1] - hm_j[py][px - 1],
+                             hm_j[py + 1][px] - hm_j[py - 1][px]]
+                        )
                         diff = np.sign(diff)
                         x += diff[0] * .25
                         y += diff[1] * .25
                     kps_result[image_id, j, :2] = (
-                        x * cfg.input_shape[1] / cfg.output_shape[1], y * cfg.input_shape[0] / cfg.output_shape[0])
-                    kps_result[image_id, j, 2] = hm_j.max() / 255
+                        x * cfg.input_shape[1] / cfg.output_shape[1],
+                        y * cfg.input_shape[0] / cfg.output_shape[0]
+                    )
+                    kps_result[image_id, j, 2] = hm_j.max() / 255.
 
                 # map back to original images
                 for j in range(cfg.num_kps):
-                    kps_result[image_id, j, 0] = kps_result[image_id, j, 0] / cfg.input_shape[1] * ( \
-                                crop_infos[image_id - start_id][2] - crop_infos[image_id - start_id][0]) + \
-                                                 crop_infos[image_id - start_id][0]
-                    kps_result[image_id, j, 1] = kps_result[image_id, j, 1] / cfg.input_shape[0] * ( \
-                                crop_infos[image_id - start_id][3] - crop_infos[image_id - start_id][1]) + \
-                                                 crop_infos[image_id - start_id][1]
+                    kps_result[image_id, j, 0] = kps_result[image_id, j, 0] / cfg.input_shape[1] * (
+                            crop_infos[image_id - start_id][2] - crop_infos[image_id - start_id][0]
+                    ) + crop_infos[image_id - start_id][0]
+                    kps_result[image_id, j, 1] = kps_result[image_id, j, 1] / cfg.input_shape[0] * (
+                            crop_infos[image_id - start_id][3] - crop_infos[image_id - start_id][1]
+                    ) + crop_infos[image_id - start_id][1]
 
-                area_save[image_id] = (crop_infos[image_id - start_id][2] - crop_infos[image_id - start_id][0]) * (
-                        crop_infos[image_id - start_id][3] - crop_infos[image_id - start_id][1])
+                area_save[image_id] = (crop_infos[image_id - start_id][2]
+                                       - crop_infos[image_id - start_id][0]) * \
+                                      (crop_infos[image_id - start_id][3]
+                                       - crop_infos[image_id - start_id][1])
 
         score_result = np.copy(kps_result[:, :, 2])
         kps_result[:, :, 2] = 1
         kps_result = kps_result.reshape(-1, cfg.num_kps * 3)
 
         # rescoring and oks nms
-        if cfg.dataset == 'COCO':
-            rescored_score = np.zeros((len(score_result)))
-            for i in range(len(score_result)):
-                score_mask = score_result[i] > cfg.score_thr
-                if np.sum(score_mask) > 0:
-                    rescored_score[i] = np.mean(score_result[i][score_mask]) * cropped_data[i]['score']
-            score_result = rescored_score
-            keep = oks_nms(kps_result, score_result, area_save, cfg.oks_nms_thr)
-            if len(keep) > 0:
-                kps_result = kps_result[keep, :]
-                score_result = score_result[keep]
-                area_save = area_save[keep]
-        elif cfg.dataset == 'PoseTrack':
-            keep = oks_nms(kps_result, np.mean(score_result, axis=1), area_save, cfg.oks_nms_thr)
-            if len(keep) > 0:
-                kps_result = kps_result[keep, :]
-                score_result = score_result[keep, :]
-                area_save = area_save[keep]
+        rescored_score = np.zeros((len(score_result)))
+        for i in range(len(score_result)):
+            score_mask = score_result[i] > cfg.score_thr
+            if np.sum(score_mask) > 0:
+                rescored_score[i] = np.mean(score_result[i][score_mask]) * \
+                                    cropped_data[i]['score']
+        score_result = rescored_score
+        keep = oks_nms(kps_result, score_result, area_save, cfg.oks_nms_thr)
+        if len(keep) > 0:
+            kps_result = kps_result[keep, :]
+            score_result = score_result[keep]
+            area_save = area_save[keep]
 
         # save result
         for i in range(len(kps_result)):
-            if cfg.dataset == 'COCO':
-                result = dict(image_id=im_info['image_id'], category_id=1, score=float(round(score_result[i], 4)),
-                              keypoints=kps_result[i].round(3).tolist())
-            elif cfg.dataset == 'PoseTrack':
-                result = dict(image_id=im_info['image_id'], category_id=1, track_id=0,
-                              scores=score_result[i].round(4).tolist(),
-                              keypoints=kps_result[i].round(3).tolist())
-            elif cfg.dataset == 'MPII':
-                result = dict(image_id=im_info['image_id'], scores=score_result[i].round(4).tolist(),
-                              keypoints=kps_result[i].round(3).tolist())
+            result = dict(image_id=im_info['image_id'], category_id=1,
+                          score=float(round(score_result[i], 4)),
+                          keypoints=kps_result[i].round(3).tolist())
 
             dump_results.append(result)
 
@@ -143,17 +135,15 @@ def test_net(tester, dets, det_range, gpu_id):
 
 
 def test(test_model):
+    assert osp.exists(test_model)
+
     # annotation load
-    database = cfg.database
-    annot = database.load_annot(cfg.testset)
-    gt_img_id = database.load_imgid(annot)
+    annot = coco.load_annot(cfg.test_annot_path)
+    gt_img_id = annot.imgs
 
     # human bbox load
-    if cfg.useGTbbox and cfg.testset in ['train', 'val']:
-        if cfg.testset == 'train':
-            dets = database.load_train_data(score=True)
-        else:
-            dets = database.load_val_data_with_annot()
+    if cfg.useGTbbox:
+        dets = coco.load_val_data_with_annot(cfg.val_annot_path)
         dets.sort(key=lambda x: (x['image_id']))
     else:
         with open(cfg.human_det_path, 'r') as f:
@@ -164,9 +154,9 @@ def test(test_model):
         dets.sort(key=lambda x: (x['image_id'], x['score']), reverse=True)
 
         img_id = []
-        for i in dets:
-            img_id.append(i['image_id'])
-        imgname = database.imgid_to_imgname(annot, img_id, cfg.testset)
+        for det in dets:
+            img_id.append(det['image_id'])
+        imgname = coco.imgid_to_imgname(annot, img_id, cfg.testset)
         for i in range(len(dets)):
             dets[i]['imgpath'] = imgname[i]
 
@@ -194,24 +184,21 @@ def test(test_model):
     result = MultiGPUFunc.work()
 
     # evaluation
-    database.evaluation(result, annot, cfg.result_dir, cfg.testset)
+    coco.evaluation(result, annot, cfg.result_dir, cfg.testset)
 
 
 if __name__ == '__main__':
+
     def parse_args():
         parser = argparse.ArgumentParser()
         parser.add_argument('--gpu', type=str, dest='gpu_ids')
-        parser.add_argument('--test_epoch', type=str, dest='test_epoch')
+        parser.add_argument('--test_model', type=str, dest='test_model')
         args = parser.parse_args()
-
         # test gpus
         if not args.gpu_ids:
             args.gpu_ids = str(np.argmin(mem_info()))
-
-        assert args.test_epoch, 'Test epoch is required.'
         return args
-
 
     global args
     args = parse_args()
-    test(int(args.test_epoch))
+    test(int(args.test_model))
