@@ -183,7 +183,7 @@ class Trainer(Base):
 
         if cfg.dataset == 'COCO':
             import coco
-            train_data = coco.load_train_data()
+            train_data = coco.load_train_data(cfg.datadir)
         else:
             raise NotImplementedError
 

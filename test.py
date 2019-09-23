@@ -144,9 +144,9 @@ def test(test_model):
     # annotation load
     if cfg.dataset == 'COCO':
         if coco.testset == 'val':
-            annot = coco.load_annot(coco.val_annot_path)
+            annot = coco.load_annot(cfg.datadir, coco.val_annot_path)
         else:
-            annot = coco.load_annot(coco.test_annot_path)
+            annot = coco.load_annot(cfg.datadir, coco.test_annot_path)
     else:
         raise NotImplementedError
 

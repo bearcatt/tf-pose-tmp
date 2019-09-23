@@ -12,12 +12,11 @@ class Config:
 
     ## directory
     root_dir = osp.dirname(osp.abspath(__file__))
-    pretrain_model_dir = osp.join(root_dir, 'dataset', 'imagenet_weights')
     output_dir = osp.join(root_dir, 'output')
 
     if dataset == 'COCO':
         import coco
-        datadir = osp.join(root_dir, 'dataset/COCO')
+        datadir = osp.join(root_dir, 'dataset/')
         img_path = osp.join(datadir, coco.img_path)
         human_det_path = osp.join(datadir, coco.human_det_path)
         num_kps = coco.num_kps
@@ -77,3 +76,22 @@ cfg = Config()
 make_dir(cfg.model_dump_dir)
 make_dir(cfg.log_dir)
 make_dir(cfg.result_dir)
+
+
+import tensorflow as tf
+
+tf.app.flags.DEFINE_string('dataset', 'COCO', 'The dataset to use.')
+
+tf.app.flags.DEFINE_string('root_dir', '.', 'The root directory.')
+
+tf.app.flags.DEFINE_string('output_dir', 'output', 'The output directory.')
+
+tf.app.flags.DEFINE_string('datadir', 'dataset', 'The dataset directory.')
+
+tf.app.flags.DEFINE_string('img_path', 'dataset/images', 'The image path.')
+
+tf.app.flags.DEFINE_string('human_det_path', 'dataset/human_detections.json', 'The detected human boxes.')
+
+tf.app.flags.DEFINE_integer('num_kps', 17, 'Number of key points.')
+
+
