@@ -26,7 +26,7 @@ testset = 'val'
 
 
 def load_train_data(datadir, score=False):
-    coco = COCO(osp.joint(datadir, train_annot_path))
+    coco = COCO(osp.join(datadir, train_annot_path))
     train_data = []
     for aid in coco.anns.keys():
         ann = coco.anns[aid]
@@ -65,7 +65,7 @@ def load_train_data(datadir, score=False):
 
 
 def load_annot(annot_path):
-    return COCO(osp.joint(datadir, annot_path))
+    return COCO(osp.join(datadir, annot_path))
 
 
 def imgid_to_imgname(annot, imgid, db_set):
