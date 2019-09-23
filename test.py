@@ -6,7 +6,6 @@ import os.path as osp
 import numpy as np
 from tqdm import tqdm
 
-import coco
 from config import cfg
 from engine import Tester
 from gen_batch import generate_batch
@@ -14,6 +13,11 @@ from model import Model
 from nms.nms import oks_nms
 from tfflat.mp_utils import MultiProc
 from tfflat.utils import mem_info
+
+if cfg.dataset == 'COCO':
+    import coco
+else:
+    raise NotImplementedError
 
 
 def test_net(tester, dets, det_range, gpu_id):
@@ -138,27 +142,36 @@ def test(test_model):
     assert osp.exists(test_model)
 
     # annotation load
-    annot = coco.load_annot(cfg.test_annot_path)
+    if cfg.dataset == 'COCO':
+        if coco.testset == 'val':
+            annot = coco.load_annot(coco.val_annot_path)
+        else:
+            annot = coco.load_annot(coco.test_annot_path)
+    else:
+        raise NotImplementedError
+
     gt_img_id = annot.imgs
 
     # human bbox load
-    if cfg.useGTbbox:
-        dets = coco.load_val_data_with_annot(cfg.val_annot_path)
-        dets.sort(key=lambda x: (x['image_id']))
-    else:
-        with open(cfg.human_det_path, 'r') as f:
-            dets = json.load(f)
-        dets = [i for i in dets if i['image_id'] in gt_img_id]
-        dets = [i for i in dets if i['category_id'] == 1]
-        dets = [i for i in dets if i['score'] > 0]
-        dets.sort(key=lambda x: (x['image_id'], x['score']), reverse=True)
+    with open(cfg.human_det_path, 'r') as f:
+        dets = json.load(f)
+    dets = [i for i in dets if i['image_id'] in gt_img_id]
+    dets = [i for i in dets if i['category_id'] == 1]
+    dets = [i for i in dets if i['score'] > 0]
+    dets.sort(key=lambda x: (x['image_id'], x['score']), reverse=True)
 
-        img_id = []
-        for det in dets:
-            img_id.append(det['image_id'])
-        imgname = coco.imgid_to_imgname(annot, img_id, cfg.testset)
-        for i in range(len(dets)):
-            dets[i]['imgpath'] = imgname[i]
+    img_id = []
+    for det in dets:
+        img_id.append(det['image_id'])
+
+    imgs = annot.loadImgs(img_id)
+    if coco.testset == 'val':
+        imgname = ['val2017/' + i['file_name'] for i in imgs]
+    else:
+        imgname = ['test2017/' + i['file_name'] for i in imgs]
+
+    for i in range(len(dets)):
+        dets[i]['imgpath'] = imgname[i]
 
     # job assign (multi-gpu)
     img_start = 0
@@ -184,7 +197,14 @@ def test(test_model):
     result = MultiGPUFunc.work()
 
     # evaluation
-    coco.evaluation(result, annot, cfg.result_dir, cfg.testset)
+    if cfg.dataset == 'COCO':
+        if coco.testset == 'val':
+            coco.evaluation(result, annot, cfg.result_dir, cfg.testset)
+        else:
+            with open('{}_test.json'.format(osp.splitext(test_model)[0]), 'wb') as f:
+                json.dump(result, f)
+    else:
+        raise NotImplementedError
 
 
 if __name__ == '__main__':
@@ -198,6 +218,7 @@ if __name__ == '__main__':
         if not args.gpu_ids:
             args.gpu_ids = str(np.argmin(mem_info()))
         return args
+
 
     global args
     args = parse_args()

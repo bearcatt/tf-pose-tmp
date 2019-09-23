@@ -3,7 +3,6 @@ import os.path as osp
 
 import numpy as np
 
-import coco
 from tfflat.utils import make_dir
 
 
@@ -17,13 +16,11 @@ class Config:
     output_dir = osp.join(root_dir, 'output')
 
     if dataset == 'COCO':
+        import coco
         datadir = osp.join(root_dir, 'dataset/COCO')
         img_path = osp.join(datadir, coco.img_path)
         human_det_path = osp.join(datadir, coco.human_det_path)
-        train_annot_path = osp.join(datadir, coco.train_annot_path)
-        test_annot_path = osp.join(datadir, coco.test_annot_path)
-        val_annot_path = osp.join(datadir, coco.val_annot_path)
-        testset = 'val'  # test, val
+        num_kps = coco.num_kps
     else:
         raise NotImplementedError
 

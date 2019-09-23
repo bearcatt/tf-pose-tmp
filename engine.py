@@ -7,7 +7,6 @@ import numpy as np
 import setproctitle
 import tensorflow as tf
 
-import coco
 from config import cfg
 from gen_batch import generate_batch
 from tfflat.data_provider import (
@@ -183,7 +182,11 @@ class Trainer(Base):
 
     def _make_data(self):
 
-        train_data = coco.load_train_data()
+        if cfg.dataset == 'COCO':
+            import coco
+            train_data = coco.load_train_data()
+        else:
+            raise NotImplementedError
 
         data_load_thread = DataFromList(train_data)
         if cfg.multi_thread_enable:

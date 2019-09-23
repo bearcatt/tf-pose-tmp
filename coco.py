@@ -22,8 +22,10 @@ test_annot_path = 'annotations/image_info_test-dev2017.json'
 human_det_path = 'dets/human_detection.json'
 img_path = 'images'
 
+testset = 'val'
 
-def load_train_data(train_annot_path, score=False):
+
+def load_train_data(score=False):
     coco = COCO(train_annot_path)
     train_data = []
     for aid in coco.anns.keys():
@@ -60,24 +62,6 @@ def load_train_data(train_annot_path, score=False):
         train_data.append(data)
 
     return train_data
-
-
-def load_val_data_with_annot(val_annot_path):
-    coco = COCO(val_annot_path)
-    val_data = []
-    for aid in coco.anns.keys():
-        ann = coco.anns[aid]
-        if ann['image_id'] not in coco.imgs:
-            continue
-        imgname = 'val2017/' + coco.imgs[ann['image_id']]['file_name']
-        bbox = ann['bbox']
-        joints = ann['keypoints']
-        data = dict(
-            image_id=ann['image_id'], imgpath=imgname,
-            bbox=bbox, joints=joints, score=1)
-        val_data.append(data)
-
-    return val_data
 
 
 def load_annot(annot_path):
