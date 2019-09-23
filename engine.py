@@ -171,11 +171,10 @@ class Base(object):
 class Trainer(Base):
 
     def __init__(self, net, data_iter=None):
-        super(Trainer, self).__init__(net, data_iter, log_name='train_logs.txt')
-
         self.lr_eval = cfg.lr
         self.lr = tf.Variable(cfg.lr, trainable=False)
         self._optimizer = get_optimizer(self.lr, cfg.optimizer)
+        super(Trainer, self).__init__(net, data_iter, log_name='train_logs.txt')
 
         # make data
         self._data_iter, self.itr_per_epoch = self._make_data()
