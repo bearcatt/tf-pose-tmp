@@ -7,15 +7,8 @@ from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
 
 num_kps = 17
-kps_names = ['nose', 'l_eye', 'r_eye', 'l_ear', 'r_ear',
-             'l_shoulder', 'r_shoulder', 'l_elbow', 'r_elbow',
-             'l_wrist', 'r_wrist', 'l_hip', 'r_hip',
-             'l_knee', 'r_knee', 'l_ankle', 'r_ankle']
 kps_symmetry = [(1, 2), (3, 4), (5, 6), (7, 8),
                 (9, 10), (11, 12), (13, 14), (15, 16)]
-kps_lines = [(1, 2), (0, 1), (0, 2), (2, 4), (1, 3),
-             (6, 8), (8, 10), (5, 7), (7, 9), (12, 14),
-             (14, 16), (11, 13), (13, 15), (5, 6), (11, 12)]
 train_annot_path = 'annotations/person_keypoints_train2017.json'
 val_annot_path = 'annotations/person_keypoints_val2017.json'
 test_annot_path = 'annotations/image_info_test-dev2017.json'
