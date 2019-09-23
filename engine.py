@@ -286,7 +286,7 @@ class Trainer(Base):
                 itr_summary[k] = summary_res[i]
 
             screen = [
-                'Epoch %d itr %d/%d:' % (self.cur_epoch, itr_epoch),
+                'Epoch %d itr %d:' % (self.cur_epoch, itr_epoch),
                 'lr: %g' % (self.lr_eval),
                 'speed: %.2f(%.2fs r%.2f)s/itr' % (
                     self.tot_timer.average_time,
