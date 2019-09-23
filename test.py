@@ -139,7 +139,7 @@ def test_net(tester, dets, det_range, gpu_id):
 
 
 def test(test_model):
-    assert osp.exists(test_model)
+    assert osp.exists(ops.join(cfg.root_dir, test_model))
 
     # annotation load
     if cfg.dataset == 'COCO':
