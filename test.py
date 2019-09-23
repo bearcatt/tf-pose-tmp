@@ -222,4 +222,4 @@ if __name__ == '__main__':
 
     global args
     args = parse_args()
-    test(int(args.test_model))
+    test(args.test_model)
