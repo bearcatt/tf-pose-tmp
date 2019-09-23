@@ -57,7 +57,7 @@ def load_train_data(datadir, score=False):
     return train_data
 
 
-def load_annot(annot_path):
+def load_annot(datadir, annot_path):
     return COCO(osp.join(datadir, annot_path))
 
 
