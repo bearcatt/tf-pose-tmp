@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repo is **[TensorFlow](https://www.tensorflow.org)** implementation of **[Deep High-Resolution Representation Learning for Human Pose Estimation (CVPR 2019)](https://arxiv.org/abs/1902.09212)** of MSRA for **2D multi-person pose estimation** from a single RGB image.
+This repo is **[TensorFlow](https://www.tensorflow.org)** implementation of **[Deep High-Resolution Representation Learning for Human Pose Estimation (CVPR 2019)](https://arxiv.org/abs/1902.09212)**.
 
 ## Dependencies
 * [Anaconda](https://www.anaconda.com/download/)
@@ -32,7 +32,8 @@ ${POSE_ROOT}
     |       |-- val2017/
     |       `-- test2017/
 ```
-* In the training stage, GT human bbox is used, and `human_detection.json` is used in testing stage which should be prepared before testing and follow [MS COCO format](http://cocodataset.org/#format-results).
+* In the training stage, GT human bbox is used, and `human_detection.json` is used in testing stage.
+* Prepare `human_detection.json` following [MS COCO format](http://cocodataset.org/#format-results).
 * The imagenet pre-trained hrnet models can be downloaded from [here]().
 
 ### Output
@@ -43,7 +44,6 @@ ${POSE_ROOT}
     |-- log
     |-- model_dump
     `-- result
-
 ```
 * Creating `output` folder as soft link form is recommended instead of folder form because it would take large storage capacity.
 * `log` folder contains training log file.
@@ -55,26 +55,14 @@ ${POSE_ROOT}
 ### Start
 * Install the dependencies.
 * Run `pip install -r requirements.txt` to install other required modules.
-* Run `python setup.py build_ext --inplace; rm -rf build` in `${POSE_ROOT}/nms` to build NMS modules.
-* In the `${POSE_ROOT}/config.py`, you can change settings of the model including dataset to use, network backbone, input size and so on.
+* Run `python setup.py build_ext --inplace; rm -rf build` in `nms/` to build NMS modules.
+* In `config.py`, you can change settings of the model including dataset to use, network backbone, input size and so on.
 
 ### Train
-In `${POSE_ROOT}`, run
-```bash
-python train.py --gpu 0,1,2,3
-```
-to train the network from scratch on GPU 0,1,2,3. 
-
-If you want to fine-tune from a pre-trained model, run 
-```bash
-python train.py --gpu 0,1,2,3 --weights path_to_model
-```
+* Run `python train.py --gpu 0,1,2,3` to train the network from scratch on GPU 0,1,2,3. 
+* If you want to fine-tune from a pre-trained model, run `python train.py --gpu 0,1,2,3 --weights path_to_model`. 
 
 ### Test
-In `${POSE_ROOT}`, run 
-```bash
-python test.py --gpu 0,1,2,3 --test_model path_to_model
-```
-to test the network on the GPU 0,1,2,3.
+* Run `python test.py --gpu 0,1,2,3 --test_model path_to_model` to test the network on the GPU 0,1,2,3.
 
 ## Results on MSCOCO val2017

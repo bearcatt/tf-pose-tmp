@@ -7,66 +7,66 @@ from tfflat.utils import make_dir
 
 
 class Config:
-    ## dataset
-    dataset = 'COCO'
+  ## dataset
+  dataset = 'COCO'
 
-    ## directory
-    root_dir = osp.dirname(osp.abspath(__file__))
-    output_dir = osp.join(root_dir, 'output')
+  ## directory
+  root_dir = osp.dirname(osp.abspath(__file__))
+  output_dir = osp.join(root_dir, 'output')
 
-    if dataset == 'COCO':
-        import coco
-        datadir = osp.join(root_dir, 'dataset/')
-        img_path = osp.join(datadir, coco.img_path)
-        human_det_path = osp.join(datadir, coco.human_det_path)
-        num_kps = coco.num_kps
-        kps_symmetry = coco.kps_symmetry
-    else:
-        raise NotImplementedError
+  if dataset == 'COCO':
+    import coco
+    datadir = osp.join(root_dir, 'dataset/')
+    img_path = osp.join(datadir, coco.img_path)
+    human_det_path = osp.join(datadir, coco.human_det_path)
+    num_kps = coco.num_kps
+    kps_symmetry = coco.kps_symmetry
+  else:
+    raise NotImplementedError
 
-    ## model setting
-    hrnet_size = 32  # 'w32', 'w48'
+  ## model setting
+  hrnet_size = 32  # 'w32', 'w48'
 
-    ## input, output
-    input_shape = (256, 192)  # (256,192), (384,288)
-    output_shape = (input_shape[0] // 4, input_shape[1] // 4)
-    if output_shape[0] == 64:
-        sigma = 2
-    elif output_shape[0] == 96:
-        sigma = 3
-    pixel_means = np.array([[[123.68, 116.78, 103.94]]])
+  ## input, output
+  input_shape = (256, 192)  # (256,192), (384,288)
+  output_shape = (input_shape[0] // 4, input_shape[1] // 4)
+  if output_shape[0] == 64:
+    sigma = 2
+  elif output_shape[0] == 96:
+    sigma = 3
+  pixel_means = np.array([[[123.68, 116.78, 103.94]]])
 
-    ## training config
-    lr_dec_epoch = [170, 200]
-    end_epoch = 210
-    lr = 1e-3
-    lr_dec_factor = 10
-    optimizer = 'adam'
-    weight_decay = 1e-5
-    batch_size = 32
-    scale_factor = 0.35
-    rotation_factor = 45
+  ## training config
+  lr_dec_epoch = [170, 200]
+  end_epoch = 210
+  lr = 1e-3
+  lr_dec_factor = 10
+  optimizer = 'adam'
+  weight_decay = 1e-5
+  batch_size = 32
+  scale_factor = 0.35
+  rotation_factor = 45
 
-    ## testing config
-    flip_test = True
-    oks_nms_thr = 0.9
-    score_thr = 0.2
+  ## testing config
+  flip_test = True
+  oks_nms_thr = 0.9
+  score_thr = 0.2
 
-    ## others
-    multi_thread_enable = True
-    num_thread = 10
-    log_display = 1
+  ## others
+  multi_thread_enable = True
+  num_thread = 10
+  log_display = 1
 
-    model_str = 'w{}_{}x{}'.format(hrnet_size, input_shape[0], input_shape[1])
-    model_dump_dir = osp.join(output_dir, model_str, 'model_dump', dataset)
-    log_dir = osp.join(output_dir, model_str, 'log', dataset)
-    result_dir = osp.join(output_dir, model_str, 'result', dataset)
+  model_str = 'w{}_{}x{}'.format(hrnet_size, input_shape[0], input_shape[1])
+  model_dump_dir = osp.join(output_dir, model_str, 'model_dump', dataset)
+  log_dir = osp.join(output_dir, model_str, 'log', dataset)
+  result_dir = osp.join(output_dir, model_str, 'result', dataset)
 
-    def set_args(self, gpu_ids):
-        self.gpu_ids = gpu_ids
-        self.num_gpus = len(self.gpu_ids.split(','))
-        os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
-        print('>>> Using /gpu:{}'.format(self.gpu_ids))
+  def set_args(self, gpu_ids):
+    self.gpu_ids = gpu_ids
+    self.num_gpus = len(self.gpu_ids.split(','))
+    os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
+    print('>>> Using /gpu:{}'.format(self.gpu_ids))
 
 
 cfg = Config()
