@@ -21,7 +21,6 @@ class Config:
         human_det_path = osp.join(datadir, coco.human_det_path)
         num_kps = coco.num_kps
         kps_symmetry = coco.kps_symmetry
-        
     else:
         raise NotImplementedError
 

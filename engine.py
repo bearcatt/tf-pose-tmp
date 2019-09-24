@@ -244,7 +244,7 @@ class Trainer(Base):
 
         return train_op
 
-    def train(self):
+    def train(self, weights):
         # saver
         self.logger.info('Initialize saver ...')
         train_saver = Saver(self.sess, tf.global_variables(), cfg.model_dump_dir)
@@ -253,7 +253,7 @@ class Trainer(Base):
         self.logger.info('Initialize all variables ...')
         self.sess.run(tf.variables_initializer(tf.global_variables(), name='init'))
 
-        self.load_weights(cfg.weights)
+        self.load_weights(weights)
 
         self.logger.info('Start training ...')
         start_itr = self.cur_epoch * self.itr_per_epoch + 1
