@@ -197,7 +197,7 @@ def test(test_model):
     # evaluation
     if cfg.dataset == 'COCO':
         if coco.testset == 'val':
-            coco.evaluation(result, annot, cfg.result_dir, cfg.testset)
+            coco.evaluation(result, annot, cfg.result_dir)
         else:
             with open('{}_test.json'.format(osp.splitext(test_model)[0]), 'wb') as f:
                 json.dump(result, f)

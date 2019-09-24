@@ -359,14 +359,14 @@ class Tester(Base):
 
         self._outputs = aggregate_batch(self._output_list)
 
-        run_meta = tf.RunMetadata()
-        opts = tf.profiler.ProfileOptionBuilder.float_operation()
-        flops = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
+        # run_meta = tf.RunMetadata()
+        # opts = tf.profiler.ProfileOptionBuilder.float_operation()
+        # flops = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
 
-        opts = tf.profiler.ProfileOptionBuilder.trainable_variables_parameter()
-        params = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
+        # opts = tf.profiler.ProfileOptionBuilder.trainable_variables_parameter()
+        # params = tf.profiler.profile(self.sess.graph, run_meta=run_meta, cmd='op', options=opts)
 
-        print("{:,} --- {:,}".format(flops.total_float_ops, params.total_parameters))
+        # print("{:,} --- {:,}".format(flops.total_float_ops, params.total_parameters))
 
         return self._outputs
 

@@ -67,7 +67,7 @@ def imgid_to_imgname(annot, imgid, db_set):
     return imgname
 
 
-def evaluation(result, gt, result_dir, db_set):
+def evaluation(result, gt, result_dir):
     result_path = osp.join(result_dir, 'result.json')
     with open(result_path, 'w') as f:
         json.dump(result, f)
