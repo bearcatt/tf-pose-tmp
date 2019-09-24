@@ -61,12 +61,6 @@ def load_annot(datadir, annot_path):
     return COCO(osp.join(datadir, annot_path))
 
 
-def imgid_to_imgname(annot, imgid, db_set):
-    imgs = annot.loadImgs(imgid)
-    imgname = [db_set + '2017/' + i['file_name'] for i in imgs]
-    return imgname
-
-
 def evaluation(result, gt, result_dir):
     result_path = osp.join(result_dir, 'result.json')
     with open(result_path, 'w') as f:

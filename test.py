@@ -145,10 +145,9 @@ def test(test_model):
             annot = coco.load_annot(cfg.datadir, coco.val_annot_path)
         else:
             annot = coco.load_annot(cfg.datadir, coco.test_annot_path)
+        gt_img_id = annot.imgs
     else:
         raise NotImplementedError
-
-    gt_img_id = annot.imgs
 
     # human bbox load
     with open(cfg.human_det_path, 'r') as f:
@@ -162,11 +161,14 @@ def test(test_model):
     for det in dets:
         img_id.append(det['image_id'])
 
-    imgs = annot.loadImgs(img_id)
-    if coco.testset == 'val':
-        imgname = ['val2017/' + i['file_name'] for i in imgs]
+    if cfg.dataset == 'COCO':
+        imgs = annot.loadImgs(img_id)
+        if coco.testset == 'val':
+            imgname = ['val2017/' + i['file_name'] for i in imgs]
+        else:
+            imgname = ['test2017/' + i['file_name'] for i in imgs]
     else:
-        imgname = ['test2017/' + i['file_name'] for i in imgs]
+        raise NotImplementedError
 
     for i in range(len(dets)):
         dets[i]['imgpath'] = imgname[i]

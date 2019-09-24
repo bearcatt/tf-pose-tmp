@@ -322,6 +322,7 @@ def get_lr(epoch):
 
 
 class Tester(Base):
+
     def __init__(self, net, data_iter=None):
         super(Tester, self).__init__(net, data_iter, log_name='test_logs.txt')
 
