@@ -12,7 +12,7 @@ kps_symmetry = [(1, 2), (3, 4), (5, 6), (7, 8),
 train_annot_path = 'annotations/person_keypoints_train2017.json'
 val_annot_path = 'annotations/person_keypoints_val2017.json'
 test_annot_path = 'annotations/image_info_test-dev2017.json'
-human_det_path = 'dets/human_detection.json'
+human_det_path = 'dets/human_detections.json'
 img_path = 'images'
 
 testset = 'val'

@@ -20,6 +20,6 @@ def parse_args():
 
 
 args = parse_args()
-cfg.set_args(args.gpu_ids, args.weights)
+cfg.set_args(args.gpu_ids)
 trainer = Trainer(Model(), cfg)
-trainer.train()
+trainer.train(args.weights)

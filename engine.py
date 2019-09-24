@@ -150,8 +150,10 @@ class Base(object):
             if model.split('/')[-1].startswith('snapshot_'):
                 self.cur_epoch = int(model[model.find('snapshot_') + 9:model.find('.ckpt')])
                 self.logger.info('Current epoch is %d.' % self.cur_epoch)
+            return True
         else:
             self.logger.critical('Load nothing. There is no model in path {}.'.format(model))
+            return False
 
     def next_feed(self):
         if self._data_iter is None:

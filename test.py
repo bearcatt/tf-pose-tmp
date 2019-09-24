@@ -139,8 +139,6 @@ def test_net(tester, dets, det_range, gpu_id):
 
 
 def test(test_model):
-    assert osp.exists(ops.join(cfg.root_dir, test_model))
-
     # annotation load
     if cfg.dataset == 'COCO':
         if coco.testset == 'val':
@@ -189,7 +187,7 @@ def test(test_model):
     def func(gpu_id):
         cfg.set_args(args.gpu_ids.split(',')[gpu_id])
         tester = Tester(Model(), cfg)
-        tester.load_weights(test_model)
+        assert tester.load_weights(test_model)
         range = [ranges[gpu_id], ranges[gpu_id + 1]]
         return test_net(tester, dets, range, gpu_id)
 
@@ -212,7 +210,7 @@ if __name__ == '__main__':
     def parse_args():
         parser = argparse.ArgumentParser()
         parser.add_argument('--gpu', type=str, dest='gpu_ids')
-        parser.add_argument('--test_model', type=str, dest='test_model')
+        parser.add_argument('--weights', type=str, dest='weights')
         args = parser.parse_args()
         # test gpus
         if not args.gpu_ids:
@@ -222,4 +220,4 @@ if __name__ == '__main__':
 
     global args
     args = parse_args()
-    test(args.test_model)
+    test(args.weights)

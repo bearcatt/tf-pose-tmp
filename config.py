@@ -65,10 +65,9 @@ class Config:
     log_dir = osp.join(output_dir, model_str, 'log', dataset)
     result_dir = osp.join(output_dir, model_str, 'result', dataset)
 
-    def set_args(self, gpu_ids, weights):
+    def set_args(self, gpu_ids):
         self.gpu_ids = gpu_ids
         self.num_gpus = len(self.gpu_ids.split(','))
-        self.weights = weights
         os.environ["CUDA_VISIBLE_DEVICES"] = self.gpu_ids
         print('>>> Using /gpu:{}'.format(self.gpu_ids))
 
