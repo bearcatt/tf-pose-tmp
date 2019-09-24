@@ -201,9 +201,6 @@ def test(test_model):
     if cfg.dataset == 'COCO':
         if coco.testset == 'val':
             coco.evaluation(result, annot, cfg.result_dir)
-        else:
-            with open('{}_test.json'.format(osp.splitext(test_model)[0]), 'wb') as f:
-                json.dump(result, f)
     else:
         raise NotImplementedError
 
