@@ -49,11 +49,9 @@ class Config:
     rotation_factor = 45
 
     ## testing config
-    useGTbbox = False
     flip_test = True
     oks_nms_thr = 0.9
     score_thr = 0.2
-    test_batch_size = 32
 
     ## others
     multi_thread_enable = True

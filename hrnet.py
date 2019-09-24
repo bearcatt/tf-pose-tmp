@@ -19,6 +19,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+from config import cfg
+
 _BATCH_NORM_DECAY = 0.997
 _BATCH_NORM_EPSILON = 1e-5
 DEFAULT_VERSION = 2
@@ -80,7 +82,7 @@ def conv2d_fixed_padding(inputs, filters, kernel_size, strides, data_format):
         inputs=inputs, filters=filters, kernel_size=kernel_size, strides=strides,
         padding=('SAME' if strides == 1 else 'VALID'), use_bias=False,
         kernel_initializer=tf.compat.v1.variance_scaling_initializer(),
-        kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-5),
+        kernel_regularizer=tf.contrib.layers.l2_regularizer(cfg.weight_decay),
         data_format=data_format)
 
 

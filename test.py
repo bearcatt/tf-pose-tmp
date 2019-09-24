@@ -58,18 +58,19 @@ def test_net(tester, dets, det_range, gpu_id):
             # forward
             heatmap = tester.predict_one([imgs])[0]
 
-            flip_imgs = imgs[:, :, ::-1, :]
-            flip_heatmap = tester.predict_one([flip_imgs])[0]
+            if cfg.flip_test:
+                flip_imgs = imgs[:, :, ::-1, :]
+                flip_heatmap = tester.predict_one([flip_imgs])[0]
 
-            flip_heatmap = flip_heatmap[:, :, ::-1, :]
-            for (q, w) in cfg.kps_symmetry:
-                flip_heatmap_w = flip_heatmap[:, :, :, w].copy()
-                flip_heatmap_q = flip_heatmap[:, :, :, q].copy()
-                flip_heatmap[:, :, :, q] = flip_heatmap_w
-                flip_heatmap[:, :, :, w] = flip_heatmap_q
-            flip_heatmap[:, :, 1:, :] = flip_heatmap.copy()[:, :, 0:-1, :]
-            heatmap += flip_heatmap
-            heatmap /= 2
+                flip_heatmap = flip_heatmap[:, :, ::-1, :]
+                for (q, w) in cfg.kps_symmetry:
+                    flip_heatmap_w = flip_heatmap[:, :, :, w].copy()
+                    flip_heatmap_q = flip_heatmap[:, :, :, q].copy()
+                    flip_heatmap[:, :, :, q] = flip_heatmap_w
+                    flip_heatmap[:, :, :, w] = flip_heatmap_q
+                flip_heatmap[:, :, 1:, :] = flip_heatmap.copy()[:, :, 0:-1, :]
+                heatmap += flip_heatmap
+                heatmap /= 2
 
             # for each human detection from clustered batch
             for image_id in range(start_id, end_id):
